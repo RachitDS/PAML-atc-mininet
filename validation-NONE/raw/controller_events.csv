@@ -1,0 +1,1 @@
+timestamp,dpid,src_ip,dst_ip,protocol,category,ground_truth,state,attack_probability,attack_type,action,evaluation_eligible,detected,feature_ms,inference_ms,flow_mod_ms,total_handler_ms,ntl_bypass,packet_in_ns,flow_mod_ns,flow_id,run_id,src_port,dst_port,packet_count,byte_count,first_ts,last_ts,end_reason,observation_id

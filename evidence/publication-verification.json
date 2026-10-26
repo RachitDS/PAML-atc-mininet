@@ -1,0 +1,11 @@
+{
+  "project_tests_passed": 55,
+  "dependency_warnings": 6,
+  "test_duration_seconds": 22.16,
+  "published_flow_records_verified": 19431,
+  "frozen_model_hashes_match_in_git": true,
+  "credential_pattern_scan": "passed",
+  "oversized_file_check": "passed",
+  "shell_syntax_checks": "passed",
+  "raw_pcaps_and_personal_downloads_included": false
+}

@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.joblib binary
+*.pkl binary
+*.png binary
+*.pdf binary
+*.csv -text
+*.sh text eol=lf

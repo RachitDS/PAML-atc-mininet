@@ -1,0 +1,8 @@
+{
+  "Benign": 0,
+  "ICMP_Flood": 1,
+  "SYN_Flood": 2,
+  "UDP_Flood": 3,
+  "HTTP_Flood": 4,
+  "Slowloris": 5
+}

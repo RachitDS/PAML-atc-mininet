@@ -1,0 +1,50 @@
+[
+  {
+    "campaign": "collection-rest",
+    "flow_id": "seed88-TCP-1000pps-3bots:1:10623",
+    "reason": "Malformed/missing feature CSV row; packet observations and event identity intact",
+    "source": "Deterministic replay through the same flow and temporal feature builders"
+  },
+  {
+    "campaign": "collection-rest",
+    "flow_id": "seed88-TCP-1000pps-3bots:1:10686",
+    "reason": "Malformed/missing feature CSV row; packet observations and event identity intact",
+    "source": "Deterministic replay through the same flow and temporal feature builders"
+  },
+  {
+    "campaign": "collection-rest",
+    "flow_id": "seed88-TCP-1000pps-3bots:1:10690",
+    "reason": "Malformed/missing feature CSV row; packet observations and event identity intact",
+    "source": "Deterministic replay through the same flow and temporal feature builders"
+  },
+  {
+    "campaign": "collection-rest",
+    "flow_id": "seed88-TCP-1000pps-3bots:1:10696",
+    "reason": "Malformed/missing feature CSV row; packet observations and event identity intact",
+    "source": "Deterministic replay through the same flow and temporal feature builders"
+  },
+  {
+    "campaign": "collection-rest",
+    "flow_id": "seed88-TCP-1000pps-3bots:1:10716",
+    "reason": "Malformed/missing feature CSV row; packet observations and event identity intact",
+    "source": "Deterministic replay through the same flow and temporal feature builders"
+  },
+  {
+    "campaign": "collection-rest",
+    "flow_id": "seed88-TCP-1000pps-3bots:1:10724",
+    "reason": "Malformed/missing feature CSV row; packet observations and event identity intact",
+    "source": "Deterministic replay through the same flow and temporal feature builders"
+  },
+  {
+    "campaign": "collection-rest",
+    "flow_id": "seed88-TCP-1000pps-3bots:1:10725",
+    "reason": "Malformed/missing feature CSV row; packet observations and event identity intact",
+    "source": "Deterministic replay through the same flow and temporal feature builders"
+  },
+  {
+    "campaign": "collection-rest",
+    "flow_id": "seed88-TCP-1000pps-3bots:1:10726",
+    "reason": "Malformed/missing feature CSV row; packet observations and event identity intact",
+    "source": "Deterministic replay through the same flow and temporal feature builders"
+  }
+]

@@ -1,0 +1,1 @@
+Final full project check: python -m pytest -q, from v4, using cn-ryu-venv. Result: 55 passed, 6 dependency deprecation warnings in 18.56 seconds. Model files unchanged. Prior full run retained in tests-before-defaults.log.

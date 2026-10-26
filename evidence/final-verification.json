@@ -1,0 +1,33 @@
+{
+  "frozen_model_hashes_unchanged": true,
+  "campaigns": {
+    "MONITOR": {
+      "scenarios": 90,
+      "kernel_capture_drops": 0,
+      "controller_tracebacks": 0,
+      "feature_replay_errors": 0,
+      "frozen_prediction_checks": 19431
+    },
+    "NONE": {
+      "scenarios": 90,
+      "kernel_capture_drops": 0,
+      "controller_tracebacks": 0,
+      "feature_replay_errors": 0,
+      "frozen_prediction_checks": 0
+    },
+    "FIXED": {
+      "scenarios": 90,
+      "kernel_capture_drops": 0,
+      "controller_tracebacks": 0,
+      "feature_replay_errors": 0,
+      "frozen_prediction_checks": 0
+    },
+    "PAML": {
+      "scenarios": 90,
+      "kernel_capture_drops": 0,
+      "controller_tracebacks": 0,
+      "feature_replay_errors": 0,
+      "frozen_prediction_checks": 4207
+    }
+  }
+}

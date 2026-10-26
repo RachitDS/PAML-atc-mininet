@@ -1,0 +1,11 @@
+numpy>=1.26
+pandas>=2.1
+scikit-learn>=1.4
+joblib>=1.3
+scipy>=1.11
+matplotlib>=3.8
+psutil>=5.9
+scapy>=2.5
+pytest>=8.0
+# Install Ryu separately if your Linux/Python combination supports it:
+# ryu

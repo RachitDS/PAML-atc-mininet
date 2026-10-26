@@ -1,0 +1,399 @@
+"""Real Mininet/Ryu OpenFlow 1.3 PAML-ATC controller for Phase 7.1 FINAL.
+
+Pipeline:
+    PACKET_IN -> benign/NTL handling -> online flow aggregation -> PAML
+    -> adaptive ATC -> optional MTD/deception -> FLOW_MOD
+
+The controller is deliberately a laboratory implementation. It never changes
+physical PLC configuration and the attack generator is restricted to RFC1918
+lab targets.
+"""
+from __future__ import annotations
+
+import logging
+import os
+import sys
+import threading
+import time
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from controller.flow_features import OnlineFlowTable
+from controller.metrics import ControllerMetrics
+from controller.mtd_manager import MTDManager
+from src.adaptive_atc import AdaptiveATC
+from src.paml_detector_v4 import PAMLDetectorV4
+
+try:
+    from ryu.base import app_manager
+    from ryu.controller import ofp_event
+    from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER, set_ev_cls
+    from ryu.ofproto import ofproto_v1_3
+    from ryu.lib.packet import ethernet, ipv4, packet, tcp
+    from ryu.lib import hub
+except ImportError as exc:  # pragma: no cover
+    raise RuntimeError("Ryu is required to run the real Phase-7.1 controller.") from exc
+
+LOG = logging.getLogger("PAML-ATC-RYU")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s [%(name)s] %(message)s")
+
+
+class PAMLATCRyuController(app_manager.RyuApp):
+    OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.datapaths = {}
+        self.mac_to_port = {}
+        self.mode = os.getenv("PAML_MODE", "PAML").upper()
+        self.attacker_ips = self._csv_env(
+            "PAML_ATTACKER_IPS",
+            "10.0.0.40,10.0.0.41,10.0.0.42,10.0.0.43,10.0.0.44,10.0.0.45,10.0.0.46,10.0.0.47,10.0.0.48,10.0.0.49",
+        )
+        self.benign_ips = self._csv_env("PAML_BENIGN_IPS", "10.0.0.30,10.0.0.31,10.0.0.32")
+        self.protected_ips = {"10.0.0.10", "10.0.0.11", "10.0.0.12"}
+        self.honeypot_ip = os.getenv("PAML_HONEYPOT_IP", "10.0.0.50")
+
+        self.ntl = set()
+        self.ntl_learning = True
+        self.ntl_started = time.monotonic()
+        self.ntl_period = float(os.getenv("PAML_NTL_PERIOD", "30"))
+
+        calibration = {}
+        threshold_file = ROOT / "models" / "paml_v4_threshold.json"
+        if threshold_file.exists():
+            try:
+                import json
+                calibration = json.loads(threshold_file.read_text())
+            except Exception:
+                calibration = {}
+        self.detector = PAMLDetectorV4(
+            ROOT / "models",
+            window_size=int(os.getenv("PAML_WINDOW_SIZE", str(calibration.get("window_size", 5)))),
+            attack_threshold=float(os.getenv("PAML_ATTACK_THRESHOLD", str(calibration.get("threshold", 0.50)))),
+            persistence=int(os.getenv("PAML_PERSISTENCE", str(calibration.get("persistence", 1)))),
+        )
+        self.atc = AdaptiveATC(capacity_pps=1000)
+        self.flows = OnlineFlowTable(
+            idle_timeout=float(os.getenv("PAML_FLOW_IDLE", "0.75")),
+            max_packets=int(os.getenv("PAML_FLOW_PACKETS", "20")),
+        )
+        self.metrics = ControllerMetrics(reset=True)
+        self.mtd = MTDManager(self.protected_ips, interval=10.0, seed=42)
+        self._last_mtd_generation = self.mtd.state.generation
+        self.metrics_path = ROOT / "results/raw/controller_metrics_live.json"
+        self.lock = threading.Lock()
+        self._monitor_thread = hub.spawn(self._monitor)
+
+        LOG.info(
+            "PAML-ATC controller initialized: mode=%s NTL_period=%.1fs attackers=%d benign=%d",
+            self.mode, self.ntl_period, len(self.attacker_ips), len(self.benign_ips),
+        )
+
+    @staticmethod
+    def _csv_env(name, default):
+        return {x.strip() for x in os.getenv(name, default).split(",") if x.strip()}
+
+    @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
+    def switch_features_handler(self, ev):
+        datapath = ev.msg.datapath
+        self.datapaths[datapath.id] = datapath
+        self.mac_to_port.setdefault(datapath.id, {})
+        parser = datapath.ofproto_parser
+        ofproto = datapath.ofproto
+        match = parser.OFPMatch()
+        actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER, ofproto.OFPCML_NO_BUFFER)]
+        self.add_flow(datapath, 0, match, actions, idle_timeout=0, cookie=0x5441424C)
+        LOG.info("Switch s%d connected", datapath.id)
+
+    def add_flow(self, datapath, priority, match, actions, idle_timeout=30, hard_timeout=0, cookie=0):
+        parser = datapath.ofproto_parser
+        ofproto = datapath.ofproto
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
+        mod = parser.OFPFlowMod(
+            datapath=datapath, priority=priority, match=match, instructions=inst,
+            idle_timeout=idle_timeout, hard_timeout=hard_timeout, cookie=cookie,
+        )
+        datapath.send_msg(mod)
+        return time.monotonic_ns()
+
+    def send_packet_out(self, datapath, msg, actions):
+        parser = datapath.ofproto_parser
+        ofproto = datapath.ofproto
+        in_port = msg.match.get("in_port", ofproto.OFPP_CONTROLLER)
+        data = msg.data if msg.buffer_id == ofproto.OFP_NO_BUFFER else None
+        out = parser.OFPPacketOut(
+            datapath=datapath, buffer_id=msg.buffer_id, in_port=in_port,
+            actions=actions, data=data,
+        )
+        datapath.send_msg(out)
+
+    def _packet_fields(self, msg):
+        pkt = packet.Packet(msg.data)
+        eth = pkt.get_protocol(ethernet.ethernet)
+        ip = pkt.get_protocol(ipv4.ipv4)
+        if eth is None or ip is None:
+            return None
+        proto = "OTHER"
+        syn = fin = rst = False
+        if ip.proto == 1:
+            proto = "ICMP"
+        elif ip.proto == 6:
+            proto = "TCP"
+            t = pkt.get_protocol(tcp.tcp)
+            if t is not None:
+                syn = bool(t.bits & 0x02)
+                fin = bool(t.bits & 0x01)
+                rst = bool(t.bits & 0x04)
+        elif ip.proto == 17:
+            proto = "UDP"
+        return eth, ip, proto, syn, fin, rst, len(msg.data)
+
+    def _is_ntl(self, src, dst, proto):
+        return (src, dst, proto) in self.ntl
+
+    def _learn_ntl(self, src, dst, proto):
+        """Learn only benign<->protected flows during the learning window."""
+        if not self.ntl_learning:
+            return
+        if time.monotonic() - self.ntl_started > self.ntl_period:
+            self.ntl_learning = False
+            LOG.info("NTL learning complete: %d learned flows", len(self.ntl))
+            return
+        valid = (src in self.benign_ips and dst in self.protected_ips) or (
+            dst in self.benign_ips and src in self.protected_ips
+        )
+        if valid:
+            before = len(self.ntl)
+            self.ntl.add((src, dst, proto))
+            self.ntl.add((dst, src, proto))
+            if len(self.ntl) > before:
+                self.metrics.ntl_learned(len(self.ntl) - before)
+                LOG.info("NTL learned %s->%s %s (total=%d)", src, dst, proto, len(self.ntl))
+
+    def _finish_ntl_if_needed(self):
+        if self.ntl_learning and time.monotonic() - self.ntl_started > self.ntl_period:
+            self.ntl_learning = False
+            LOG.info("NTL learning complete: %d learned flows", len(self.ntl))
+
+    def _lookup_port(self, dpid, dst_mac):
+        return self.mac_to_port.get(dpid, {}).get(dst_mac)
+
+    @staticmethod
+    def _match(datapath, proto, src, dst):
+        parser = datapath.ofproto_parser
+        nums = {"ICMP": 1, "TCP": 6, "UDP": 17}
+        fields = {"eth_type": 0x0800, "ipv4_src": src, "ipv4_dst": dst}
+        if proto in nums:
+            fields["ip_proto"] = nums[proto]
+        return parser.OFPMatch(**fields)
+
+    @staticmethod
+    def _should_deceive(decision):
+        return decision.attack_type in {"ICMP_Flood", "SYN_Flood", "UDP_Flood"}
+
+    def _emit_flow(self, emitted):
+        for flow in emitted:
+            try:
+                decision, f_ms, i_ms, feature_row = self.detector.predict_flow_timed(
+                    flow, stream_id=(flow.get("src_ip"), flow.get("dst_ip"), flow.get("protocol"))
+                )
+            except Exception:
+                LOG.exception("PAML inference failed")
+                continue
+            flow["decision"] = decision
+            flow["feature_ms"] = f_ms
+            flow["inference_ms"] = i_ms
+            flow["feature_row"] = feature_row
+
+    @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
+    def packet_in_handler(self, ev):
+        msg = ev.msg
+        datapath = msg.datapath
+        dpid = datapath.id
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        packet_in_ns = time.monotonic_ns()
+
+        fields = self._packet_fields(msg)
+        if fields is None:
+            return
+        eth, ip, proto, syn, fin, rst, size = fields
+        src, dst = ip.src, ip.dst
+        in_port = msg.match.get("in_port", ofproto.OFPP_CONTROLLER)
+        self.mac_to_port.setdefault(dpid, {})[eth.src] = in_port
+        category = "attack" if src in self.attacker_ips else "benign"
+        self.metrics.packet_in(category)
+
+        self._finish_ntl_if_needed()
+        if self.ntl_learning:
+            self._learn_ntl(src, dst, proto)
+            # During learning, never install a forwarding rule: otherwise the
+            # switch would stop sending subsequent packets to the controller.
+            out = self._lookup_port(dpid, eth.dst) or ofproto.OFPP_FLOOD
+            actions = [parser.OFPActionOutput(out)]
+            self.send_packet_out(datapath, msg, actions)
+            total_ms, flow_ms = self.metrics.add_latency(packet_in_ns, None)
+            self.metrics.action("FORWARD")
+            self.metrics.record_event(
+                dpid=dpid, src_ip=src, dst_ip=dst, protocol=proto, category=category,
+                state="NTL_LEARNING", action="FORWARD", total_handler_ms=total_ms,
+            )
+            return
+
+        # Known benign flows bypass PAML after NTL has completed.
+        if self._is_ntl(src, dst, proto):
+            out = self._lookup_port(dpid, eth.dst) or ofproto.OFPP_FLOOD
+            actions = [parser.OFPActionOutput(out)]
+            flow_mod_ns = self.add_flow(
+                datapath, 20, self._match(datapath, proto, src, dst), actions,
+                idle_timeout=30, cookie=0x4E544C,
+            )
+            self.send_packet_out(datapath, msg, actions)
+            # NTL bypass is intentionally excluded from PAML latency samples.
+            # It is a fast-path forwarding rule, not an ML inference event.
+            total_ms, flow_ms = self.metrics.add_latency(packet_in_ns, flow_mod_ns)
+            self.metrics.action("FORWARD")
+            self.metrics.ntl_bypass()
+            self.metrics.record_event(
+                dpid=dpid, src_ip=src, dst_ip=dst, protocol=proto, category="benign",
+                state="NTL_BYPASS", action="FORWARD", total_handler_ms=total_ms,
+                flow_mod_ms=flow_ms, ntl_bypass=True,
+            )
+            LOG.info("NTL_BYPASS s%d %s->%s %s", dpid, src, dst, proto)
+            return
+
+        # Critical: while collecting a flow, do NOT install a forwarding
+        # FLOW_MOD. The switch must keep sending packets to the controller so
+        # that the 20-packet flow record can reach PAML.
+        emitted = self.flows.observe(src, dst, proto, size, syn, fin, rst)
+        self._emit_flow(emitted)
+
+        decision = emitted[-1].get("decision") if emitted and "decision" in emitted[-1] else None
+        if decision is None:
+            out = self._lookup_port(dpid, eth.dst) or ofproto.OFPP_FLOOD
+            self.send_packet_out(datapath, msg, [parser.OFPActionOutput(out)])
+            total_ms, flow_ms = self.metrics.add_latency(packet_in_ns, None)
+            self.metrics.action("FORWARD")
+            self.metrics.record_event(
+                dpid=dpid, src_ip=src, dst_ip=dst, protocol=proto, category=category,
+                state="FLOW_COLLECT", action="FORWARD", total_handler_ms=total_ms,
+            )
+            return
+
+        f_ms = float(emitted[-1].get("feature_ms", 0.0))
+        i_ms = float(emitted[-1].get("inference_ms", 0.0))
+
+        if self.mode == "FIXED":
+            fixed_attack = float(emitted[-1].get("flow_packets_per_sec", 0.0)) >= float(os.getenv("FIXED_THRESHOLD_PPS", "200"))
+            state = "ATTACK" if fixed_attack else "BENIGN"
+            atc_mode = "MITIGATE" if fixed_attack else "ALLOW"
+            action_reason = "fixed threshold"
+            detected = fixed_attack
+        elif self.mode == "NONE":
+            state = decision.state
+            atc_mode = "ALLOW"
+            action_reason = "no defense baseline"
+            detected = False
+        else:
+            atc = self.atc.decide(decision, source_id=src)
+            state = decision.state
+            atc_mode = atc.mode
+            action_reason = atc.reason
+            detected = decision.is_attack
+
+        # Rotate MTD periodically; count real controller rotations.
+        self.mtd.tick()
+        if self.mtd.state.generation != self._last_mtd_generation:
+            self.metrics.add_mtd_rotation()
+            self._last_mtd_generation = self.mtd.state.generation
+            LOG.info("MTD rotation generation=%d target=%s", self.mtd.state.generation, self.mtd.state.active_target)
+
+        out_port = self._lookup_port(dpid, eth.dst) or ofproto.OFPP_FLOOD
+        action_name = "FORWARD"
+        actions = [parser.OFPActionOutput(out_port)]
+
+        if detected and dst in self.mtd.targets and self._should_deceive(decision):
+            honey_port = self._lookup_port(dpid, "00:00:00:00:00:50")
+            if honey_port is not None:
+                actions = [parser.OFPActionOutput(honey_port)]
+                action_name = "REDIRECT"
+                self.metrics.add_decoy_redirect(captured=True)
+
+        if action_name == "FORWARD":
+            if atc_mode == "MITIGATE":
+                action_name = "DROP"
+                actions = []
+            elif atc_mode == "RATE_LIMIT":
+                # OpenFlow meters require switch-specific setup. For this
+                # laptop testbed we use a conservative DROP rule and label the
+                # decision as DROP rather than falsely claiming a true meter.
+                action_name = "DROP"
+                actions = []
+
+        # Do not install a forwarding FLOW_MOD for a benign PAML decision.
+        # Keeping the path at PACKET_IN lets the controller observe subsequent
+        # short flows from the same stream and preserves the temporal signal.
+        # A mitigation/redirect decision, however, is committed to the switch.
+        flow_mod_ns = None
+        if action_name in {"DROP", "REDIRECT"}:
+            priority = 120
+            # In the laboratory testbed, a short hard timeout keeps the
+            # detector observable during a continuous attack. This is not a
+            # production policy; it prevents one initial FLOW_MOD from hiding
+            # the remainder of a 5-second evaluation trace from PAML.
+            rule_hard_timeout = float(os.getenv("PAML_ATTACK_RULE_HARD_TIMEOUT", "1")) if action_name == "DROP" else 0
+            flow_mod_ns = self.add_flow(
+                datapath, priority, self._match(datapath, proto, src, dst), actions,
+                idle_timeout=5 if action_name != "DROP" else 0,
+                hard_timeout=max(0, int(round(rule_hard_timeout))),
+                cookie=0x50414D4C,
+            )
+
+        self.send_packet_out(datapath, msg, actions)
+        total_ms, flow_mod_ms = self.metrics.add_latency(packet_in_ns, flow_mod_ns)
+        self.metrics.action(action_name)
+        self.metrics.decision(
+            dpid=dpid, src_ip=src, dst_ip=dst, protocol=proto, category=category,
+            state=state, attack_probability=float(getattr(decision, "attack_probability", 0.0)),
+            attack_type=str(getattr(decision, "attack_type", "Unknown")), action=action_name,
+            feature_ms=f_ms, inference_ms=i_ms, flow_mod_ms=flow_mod_ms,
+            total_handler_ms=total_ms, packet_in_ns=packet_in_ns, flow_mod_ns=flow_mod_ns,
+            feature_row=emitted[-1].get("feature_row"),
+        )
+        LOG.info(
+            "PACKET_IN s%d %s->%s %s state=%s p=%.3f action=%s type=%s (%s)",
+            dpid, src, dst, proto, state, float(getattr(decision, "attack_probability", 0.0)),
+            action_name, getattr(decision, "attack_type", "Unknown"), action_reason,
+        )
+
+    def _monitor(self):
+        while True:
+            try:
+                self.metrics.sample_cpu()
+                self._finish_ntl_if_needed()
+                self.mtd.tick()
+                if self.mtd.state.generation != self._last_mtd_generation:
+                    self.metrics.add_mtd_rotation()
+                    self._last_mtd_generation = self.mtd.state.generation
+                self.metrics.write_snapshot({
+                    "mode": self.mode,
+                    "ntl_period": self.ntl_period,
+                    "ntl_learning": self.ntl_learning,
+                    "ntl_learned_flows": len(self.ntl),
+                    "mtd_active_target": self.mtd.state.active_target,
+                    "mtd_generation": self.mtd.state.generation,
+                    "protected_ips": sorted(self.protected_ips),
+                    "paml_window_size": self.detector.window_size,
+                    "paml_attack_threshold": self.detector.attack_threshold,
+                    "paml_persistence": self.detector.persistence,
+                })
+            except Exception:
+                LOG.exception("metrics monitor error")
+            hub.sleep(0.25)
+
+    def dump_metrics(self):
+        return self.metrics.summary()

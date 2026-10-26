@@ -1,0 +1,6 @@
+{
+  "threshold": 0.5600000000000003,
+  "persistence": 1,
+  "window_size": 5,
+  "selection": "best-seed validation F1 with FPR penalty"
+}

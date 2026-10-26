@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+results/raw/controller_metrics_live.json
+results/raw/controller_events.csv
+results/raw/phase7_measurements.csv
+results/processed/phase7_mean_sd.csv
+results/statistics/phase7_latency_summary.csv
+results/statistics/controller_event_summary.csv
+*.log
+*.pcap

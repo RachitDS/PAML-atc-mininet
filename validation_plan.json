@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "scope": "First roadmap validation on generated live Mininet traffic",
+  "label_policy": "Request direction to PLC; replies unscored; truth never a model input",
+  "training_seeds": [11, 22, 33, 44, 55, 66],
+  "validation_seeds": [77, 88],
+  "heldout_test_seeds": [99, 111],
+  "fresh_live_seeds": [121, 132, 143, 154, 165, 176, 187, 198, 209, 220],
+  "protocols": ["ICMP", "UDP", "TCP"],
+  "collection_profiles": ["150:1", "300:3", "1000:3"],
+  "live_profiles": ["150:1", "500:3", "1000:3"],
+  "duration_seconds_per_stream": 3,
+  "live_modes": ["MONITOR", "NONE", "FIXED", "PAML"],
+  "selection": "Training-only preprocessing and fitting; validation-only balanced accuracy with FPR penalty; test evaluated once after freeze",
+  "limitations": ["Generated request streams, not industrial application transactions", "No external dataset", "No HTTP or Slowloris", "Full 30/60/90 percent and 300/500/1000/2000 PPS publication matrix remains separate", "MTD and deception not validated by this classifier experiment"]
+}

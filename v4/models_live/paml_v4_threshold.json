@@ -1,0 +1,6 @@
+{
+  "threshold": 0.8499999999999999,
+  "persistence": 1,
+  "window_size": 5,
+  "selection": "Fixed train/validation seed groups; balanced accuracy with FPR penalty"
+}
