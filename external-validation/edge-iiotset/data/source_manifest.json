@@ -1,0 +1,42 @@
+{
+  "dataset": "Edge-IIoTset",
+  "version": "Kaggle version 5",
+  "owner": "Mohamed Amine Ferrag",
+  "source": "https://www.kaggle.com/datasets/mohamedamineferrag/edgeiiotset-cyber-security-dataset-of-iot-iiot",
+  "research_paper": "https://doi.org/10.1109/ACCESS.2022.3165809",
+  "dataset_listing_license": "CC BY-NC-SA 4.0",
+  "files": [
+    {
+      "name": "modbus-normal",
+      "source_file": "Edge-IIoTset dataset/Normal traffic/Modbus/Modbus.pcap",
+      "capture_bytes": 21040950,
+      "archive_sha256": "eb52fd9502ee20c1dc238513a4e0650411f7e107c157642b2f6f3754c89a5295",
+      "capture_sha256": "1e9d186b5846402cd52e6048a39423f104cb19d68de501ad0a0ac8dbb2cc63c9",
+      "local_capture": "data\\pcap\\modbus-normal.pcap"
+    },
+    {
+      "name": "icmp-flood",
+      "source_file": "Edge-IIoTset dataset/Attack traffic/DDoS ICMP Flood Attacks.pcap",
+      "capture_bytes": 212434878,
+      "archive_sha256": "1d01c57b53b12971da11843bf775115cca58f443a4d271681c4cd838d8a1bfa1",
+      "capture_sha256": "1152be31c21b9b0f146eaef63ede8092946ebe999a91935f557c5083b490e30b",
+      "local_capture": "data\\pcap\\icmp-flood.pcap"
+    },
+    {
+      "name": "tcp-syn-flood",
+      "source_file": "Edge-IIoTset dataset/Attack traffic/DDoS TCP SYN Flood Attacks.pcap",
+      "capture_bytes": 282613890,
+      "archive_sha256": "eb64232cd33c95b402e40d75d4715bfad3d8654c884688a027d019bc44e08c6f",
+      "capture_sha256": "5fa4d774b6b03c160e2c4c619c79ca55c5a673581c5c40d6f46350f50d55ae80",
+      "local_capture": "data\\pcap\\tcp-syn-flood.pcap"
+    },
+    {
+      "name": "udp-flood",
+      "source_file": "Edge-IIoTset dataset/Attack traffic/DDoS UDP Flood Attacks.pcap",
+      "capture_bytes": 247560012,
+      "archive_sha256": "9f7aa141e1f515c445910ac62058113c529c9d38b75b526230d1ca4ea079a264",
+      "capture_sha256": "6de0341f27093cac8a5eba657b8a49ecbac4dd5bf6c452a6274472df69172ce5",
+      "local_capture": "data\\pcap\\udp-flood.pcap"
+    }
+  ]
+}

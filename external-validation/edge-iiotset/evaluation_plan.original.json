@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "purpose": "Pre-registered exploratory external replay comparison; do not use this sample for model tuning",
+  "data_source": "Edge-IIoTset author's Kaggle dataset, version 5; see data/source_manifest.json",
+  "sampling": "For each capture, partition the file by packet index into five equal consecutive segments. Select the first 5000 eligible packets in each segment and sort the selected packets by capture timestamp because capture timestamps sometimes regress. Keep a separate stream history per segment. This is a deterministic sample, not a random sample or full-dataset evaluation.",
+  "capture_policy": {
+    "modbus-normal": "benign-labelled normal capture; include IPv4 TCP/UDP/ICMP sent 192.168.7.62 to 192.168.7.55 OR 192.168.0.101 to 192.168.0.128. These directions target Edge servers in the dataset paper.",
+    "icmp-flood": "provisional attack: IPv4 ICMP echo request to 192.168.0.128, source different from destination, from the ICMP flood capture",
+    "tcp-syn-flood": "provisional attack: IPv4 TCP SYN without ACK to 192.168.0.128, source different from destination, from the SYN flood capture",
+    "udp-flood": "provisional attack: IPv4 UDP to 192.168.0.128, source different from destination, from the UDP flood capture"
+  },
+  "label_limitations": "Attack selection uses attack-scenario capture plus destination, protocol and flags, not independently verified per-packet event labels. Some background packets could be mislabelled. Exclude responses and unknown protocols. Normal capture class comes from the dataset authors' normal capture naming.",
+  "feature_policy": "Same V4 FlowStats, 20-packet maximum, 0.75-second idle timeout, per-direction 5-record history, protocol encoding and feature order. Use packet capture timestamps rather than controller observation timestamps; apply the frozen existing and retrained scalers, forests and thresholds unchanged.",
+  "capture_time_limitation": "PCAP capture timestamps and wire lengths may differ from Ryu Packet-In observation timing and lengths; this is offline replay, not a live controller or blocking experiment.",
+  "key_limitations": "Packet-level spoofed source IPs may create singleton flows. The inherited 1-microsecond duration floor makes those records appear to have one million packets per second. Report singleton fraction and stratified confusion counts; do not claim 20-packet history exists for singleton flows. Flow records within captures are correlated.",
+  "model_comparison": "Existing synthetic-trained V4 versus retrained V4, same reconstructed feature records and fixed thresholds; no recalibration, no refitting and no selection based on these outcomes.",
+  "max_eligible_packets_per_segment": 5000,
+  "segments_per_capture": 5
+}

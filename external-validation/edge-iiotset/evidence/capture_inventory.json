@@ -1,0 +1,50 @@
+[
+  {
+    "name": "modbus-normal",
+    "counts": {
+      "packets_total": 159514,
+      "excluded": 62446,
+      "non_ipv4_or_other_protocol": 878,
+      "eligible": 96190,
+      "timestamp_regressions": 9
+    },
+    "first_timestamp": 1639959767.981993,
+    "last_timestamp": 1641363967.966722
+  },
+  {
+    "name": "icmp-flood",
+    "counts": {
+      "packets_total": 2914356,
+      "eligible": 2411181,
+      "excluded": 502965,
+      "timestamp_regressions": 4295,
+      "non_ipv4_or_other_protocol": 210
+    },
+    "first_timestamp": 1637792269.149462,
+    "last_timestamp": 1637792672.823991
+  },
+  {
+    "name": "tcp-syn-flood",
+    "counts": {
+      "packets_total": 2020152,
+      "eligible": 1176684,
+      "excluded": 843340,
+      "non_ipv4_or_other_protocol": 128,
+      "timestamp_regressions": 5024
+    },
+    "first_timestamp": 1637776957.608273,
+    "last_timestamp": 1637777485.622962
+  },
+  {
+    "name": "udp-flood",
+    "counts": {
+      "packets_total": 3215732,
+      "eligible": 2898830,
+      "non_ipv4_or_other_protocol": 219,
+      "excluded": 316683,
+      "timestamp_regressions": 3489
+    },
+    "first_timestamp": 1637792830.139612,
+    "last_timestamp": 1637793231.047885
+  }
+]

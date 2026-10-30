@@ -50,6 +50,11 @@ per-mode captures for network-policy evaluation.
 - [Per-seed results](live_per_seed.csv)
 - [Final verification record](evidence/final-verification.json)
 
+An [exploratory external Edge-IIoTset replay](external-validation/edge-iiotset/README.md)
+uses the retrained model on selected public captures. Its high overall score
+is heavily affected by class imbalance and singleton flows; 7.87% of the
+selected normal records were falsely flagged. Attack labels are provisional.
+
 ## Setup
 
 Tested on Ubuntu 24.04 under WSL2 with Python 3.12, Mininet 2.3.0,

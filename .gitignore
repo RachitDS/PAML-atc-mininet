@@ -19,3 +19,7 @@ htmlcov/
 *.tmp
 .DS_Store
 Thumbs.db
+/external-validation/edge-iiotset/data/archives/
+/external-validation/edge-iiotset/data/pcap/
+/external-validation/edge-iiotset/data/download_manifest.local.json
+/external-validation/edge-iiotset/results/

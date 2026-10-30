@@ -5,3 +5,5 @@
 *.pdf binary
 *.csv -text
 *.sh text eol=lf
+*.gz binary
+external-validation/edge-iiotset/evaluation_plan.original.json -text

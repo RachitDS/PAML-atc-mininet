@@ -1,0 +1,262 @@
+{
+  "dataset": "Edge-IIoTset",
+  "scope": "fixed sample, offline PCAP replay; label policy is provisional",
+  "plan_sha256": "75304b0e8ebfee48ee7e69f9c7c3a49447e50c09eb357efcea8d233da2084de0",
+  "selected": {
+    "modbus-normal": {
+      "segments": [
+        {
+          "selected_packets": 5000,
+          "records": 525,
+          "singletons": 127,
+          "capture_duration_seconds": 1400424.479371
+        },
+        {
+          "selected_packets": 5000,
+          "records": 250,
+          "singletons": 0,
+          "capture_duration_seconds": 155.83411
+        },
+        {
+          "selected_packets": 5000,
+          "records": 250,
+          "singletons": 0,
+          "capture_duration_seconds": 155.762109
+        },
+        {
+          "selected_packets": 5000,
+          "records": 250,
+          "singletons": 0,
+          "capture_duration_seconds": 155.968651
+        },
+        {
+          "selected_packets": 5000,
+          "records": 250,
+          "singletons": 0,
+          "capture_duration_seconds": 155.622178
+        }
+      ],
+      "truncated_skipped": 0
+    },
+    "icmp-flood": {
+      "segments": [
+        {
+          "selected_packets": 5000,
+          "records": 5000,
+          "singletons": 5000,
+          "capture_duration_seconds": 1.335756
+        },
+        {
+          "selected_packets": 5000,
+          "records": 5000,
+          "singletons": 5000,
+          "capture_duration_seconds": 0.347181
+        },
+        {
+          "selected_packets": 5000,
+          "records": 5000,
+          "singletons": 5000,
+          "capture_duration_seconds": 0.321408
+        },
+        {
+          "selected_packets": 5000,
+          "records": 5000,
+          "singletons": 5000,
+          "capture_duration_seconds": 0.307385
+        },
+        {
+          "selected_packets": 5000,
+          "records": 5000,
+          "singletons": 5000,
+          "capture_duration_seconds": 0.313311
+        }
+      ],
+      "truncated_skipped": 0
+    },
+    "tcp-syn-flood": {
+      "segments": [
+        {
+          "selected_packets": 5000,
+          "records": 5000,
+          "singletons": 5000,
+          "capture_duration_seconds": 2.430744
+        },
+        {
+          "selected_packets": 5000,
+          "records": 5000,
+          "singletons": 5000,
+          "capture_duration_seconds": 2.355907
+        },
+        {
+          "selected_packets": 5000,
+          "records": 5000,
+          "singletons": 5000,
+          "capture_duration_seconds": 2.798533
+        },
+        {
+          "selected_packets": 5000,
+          "records": 5000,
+          "singletons": 5000,
+          "capture_duration_seconds": 2.64107
+        },
+        {
+          "selected_packets": 5000,
+          "records": 5000,
+          "singletons": 5000,
+          "capture_duration_seconds": 1.542693
+        }
+      ],
+      "truncated_skipped": 0
+    },
+    "udp-flood": {
+      "segments": [
+        {
+          "selected_packets": 5000,
+          "records": 5000,
+          "singletons": 5000,
+          "capture_duration_seconds": 0.704501
+        },
+        {
+          "selected_packets": 5000,
+          "records": 5000,
+          "singletons": 5000,
+          "capture_duration_seconds": 0.332968
+        },
+        {
+          "selected_packets": 5000,
+          "records": 5000,
+          "singletons": 5000,
+          "capture_duration_seconds": 0.864434
+        },
+        {
+          "selected_packets": 5000,
+          "records": 5000,
+          "singletons": 5000,
+          "capture_duration_seconds": 0.303359
+        },
+        {
+          "selected_packets": 5000,
+          "records": 5000,
+          "singletons": 5000,
+          "capture_duration_seconds": 0.900481
+        }
+      ],
+      "truncated_skipped": 0
+    }
+  },
+  "records": 76525,
+  "singletons": 75127,
+  "models": {
+    "retrained_v4": {
+      "threshold": 0.8499999999999999,
+      "model_sha256": {
+        "paml_v4_binary_rf.joblib": "62679a584adb2cc31246b94a9d6006ef68863ce259674ba146401c68f7a062fc",
+        "paml_v4_scaler.joblib": "d59a50a39ef5b4ef1084e43e9e25959e701e1355bb6ba871aa8056c3b2e40369",
+        "paml_v4_threshold.json": "d3be170cd59cd551f4c104b9dffd7a7d1b86cdc31e594c20f17442b6859cd800",
+        "paml_v4_features.txt": "4ae1ce683bf72088f3dda310111616e542e64fb09c50c894a240a023562e08b2"
+      },
+      "overall": {
+        "records": 76525,
+        "tn": 1405,
+        "fp": 120,
+        "fn": 0,
+        "tp": 75000,
+        "accuracy": 0.9984318850049003,
+        "precision": 0.9984025559105432,
+        "recall": 1.0,
+        "false_positive_rate": 0.07868852459016394,
+        "f1": 0.9992006394884093,
+        "balanced_accuracy": 0.9606557377049181
+      },
+      "by_capture": {
+        "modbus-normal": {
+          "records": 1525,
+          "tn": 1405,
+          "fp": 120,
+          "fn": 0,
+          "tp": 0,
+          "accuracy": 0.921311475409836,
+          "precision": 0.0,
+          "recall": null,
+          "false_positive_rate": 0.07868852459016394,
+          "f1": 0.0,
+          "balanced_accuracy": null
+        },
+        "icmp-flood": {
+          "records": 25000,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0,
+          "tp": 25000,
+          "accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "false_positive_rate": null,
+          "f1": 1.0,
+          "balanced_accuracy": null
+        },
+        "tcp-syn-flood": {
+          "records": 25000,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0,
+          "tp": 25000,
+          "accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "false_positive_rate": null,
+          "f1": 1.0,
+          "balanced_accuracy": null
+        },
+        "udp-flood": {
+          "records": 25000,
+          "tn": 0,
+          "fp": 0,
+          "fn": 0,
+          "tp": 25000,
+          "accuracy": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "false_positive_rate": null,
+          "f1": 1.0,
+          "balanced_accuracy": null
+        }
+      },
+      "by_flow_size": {
+        "singleton": {
+          "records": 75127,
+          "tn": 19,
+          "fp": 108,
+          "fn": 0,
+          "tp": 75000,
+          "accuracy": 0.998562434277956,
+          "precision": 0.9985620706183096,
+          "recall": 1.0,
+          "false_positive_rate": 0.8503937007874016,
+          "f1": 0.9992805180270206,
+          "balanced_accuracy": 0.5748031496062992
+        },
+        "multiple_packets": {
+          "records": 1398,
+          "tn": 1386,
+          "fp": 12,
+          "fn": 0,
+          "tp": 0,
+          "accuracy": 0.9914163090128756,
+          "precision": 0.0,
+          "recall": null,
+          "false_positive_rate": 0.008583690987124463,
+          "f1": 0.0,
+          "balanced_accuracy": null
+        }
+      }
+    }
+  },
+  "source_manifest_sha256": "3ad8a81de383f2e2773fb39788103bc7f2a191d8ff69e57dc7982ff4a81cac66",
+  "feature_file_sha256": "29b4424d8a6e828dceec5181d11929f39bb40211014d2d7d3c69acae0b0a2534",
+  "prediction_file_sha256": "9c17fe6ea68076105a815a67b5ec5ae55761731e1270fe6a37fec45a16f46e2a",
+  "original_feature_file_sha256": "8a885aef9760614221495332f8a0edaae4946a0cecb1a756fe925143e70df586",
+  "original_prediction_file_sha256": "5476d62d0fc9356fce23f829ce6c371ac2ead74a6eefc6f61d7ad9697a6ae81f",
+  "publication_note": "Retrained V4 only; source/destination addresses and ports removed from shared feature vectors; raw captures and original full evaluation remain local.",
+  "original_source_manifest_sha256": "2a73892b220465e675cb1e4911b93fac7bc109d0ca9166923d5aed9e7f1e91a7"
+}
